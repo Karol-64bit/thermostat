@@ -25,6 +25,20 @@
 
 #include <Firebase_ESP_Client.h>
 
+// temp
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+// GPIO where the DS18B20 is connected to
+const int oneWireBus = 12;     
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(oneWireBus);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
+
+
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -33,7 +47,7 @@ unsigned long sendDataPrevMillis = 0;
 
 bool signupOK = false;
 
-void setup(){
+void setup(){  
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println();
@@ -47,6 +61,8 @@ void setup(){
   Serial.println(WiFi.localIP());
   Serial.println();
 
+// temp
+   sensors.begin();
 
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
@@ -68,9 +84,20 @@ void setup(){
 }
 
 void loop(){
+
+  sensors.requestTemperatures(); 
+  float temperatureC = sensors.getTempCByIndex(0);
+  float temperatureF = sensors.getTempFByIndex(0);
+  Serial.print(temperatureC);
+  Serial.println("ºC");
+  Serial.print(temperatureF);
+  Serial.println("ºF");
+  delay(5000);
+
+
   if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 15000 || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
-    if(Firebase.RTDB.setInt(&fbdo,"Test/data", sendDataPrevMillis)){
+    if(Firebase.RTDB.setInt(&fbdo,"Test/data", temperatureC)){
       Serial.println();
       Serial.println("Saved data successfully");
     }else{
@@ -78,6 +105,9 @@ void loop(){
       Serial.println("Failed:" + fbdo.errorReason());
     }
   }
+
+  
+  
 }
 
 
